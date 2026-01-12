@@ -13,6 +13,7 @@ jobs:
   build:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
@@ -27,39 +28,69 @@ jobs:
         python-version: '3.11'
         cache: 'pip'
 
+    - name: Install Linux dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libx11-dev libxtst-dev libxinerama-dev libxrandr-dev libxcomposite-dev libcursor-dev
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller
 
-    - name: Build with PyInstaller
+    - name: Build with PyInstaller (Windows)
+      if: runner.os == 'Windows'
       run: |
         pyinstaller --clean velox_air.spec
 
-    - name: Rename Artifact (Windows)
+    - name: Build with PyInstaller (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: |
+        # Use onedir for non-windows to avoid resource exhaustion and zip issues
+        # We override the name and console settings if necessary, but keep the spec logic
+        pyinstaller --clean --onedir velox_air.spec
+
+    - name: Prepare Artifact (Windows)
       if: runner.os == 'Windows'
       run: |
         cd dist
-        ren VeloxAir_Server.exe VeloxAir_Server_Windows.exe
+        if (Test-Path VeloxAir_Server.exe) { Move-Item VeloxAir_Server.exe VeloxAir_Server_Windows.exe }
 
-    - name: Rename Artifact (Linux)
+    - name: Prepare Artifact (Linux)
       if: runner.os == 'Linux'
       run: |
         cd dist
-        mv VeloxAir_Server VeloxAir_Server_Linux
+        # If onedir was used, it creates a folder. We zip it.
+        if [ -d "VeloxAir_Server" ]; then
+          mv VeloxAir_Server VeloxAir_Server_Linux_Dir
+          zip -r VeloxAir_Server_Linux.zip VeloxAir_Server_Linux_Dir
+        elif [ -f "VeloxAir_Server" ]; then
+          mv VeloxAir_Server VeloxAir_Server_Linux
+        fi
 
-    - name: Rename Artifact (macOS)
+    - name: Prepare Artifact (macOS)
       if: runner.os == 'macOS'
       run: |
         cd dist
-        mv VeloxAir_Server VeloxAir_Server_macOS
+        if [ -d "VeloxAir_Server" ]; then
+          mv VeloxAir_Server VeloxAir_Server_macOS_Dir
+          zip -r VeloxAir_Server_macOS.zip VeloxAir_Server_macOS_Dir
+        elif [ -f "VeloxAir_Server" ]; then
+          mv VeloxAir_Server VeloxAir_Server_macOS
+        fi
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: VeloxAir-${{ matrix.os }}
-        path: dist/VeloxAir_Server_*
+        path: |
+          dist/VeloxAir_Server_Windows.exe
+          dist/VeloxAir_Server_Linux.zip
+          dist/VeloxAir_Server_Linux
+          dist/VeloxAir_Server_macOS.zip
+          dist/VeloxAir_Server_macOS
 
   release:
     name: Create Release
@@ -77,7 +108,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: release_assets/*
-        draft: true
+        draft: false
         prerelease: false
         generate_release_notes: true
       env:
