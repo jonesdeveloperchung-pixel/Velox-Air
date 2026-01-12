@@ -21,10 +21,11 @@ binaries = []
 try:
     import velox_core
     velox_core_path = os.path.dirname(velox_core.__file__)
-    # Scan for .pyd files in the velox_core directory
+    # Scan for .pyd (Windows) or .so (Linux) files
     import glob
-    pyd_files = glob.glob(os.path.join(velox_core_path, "*.pyd"))
-    for f in pyd_files:
+    pattern = "*.pyd" if sys.platform == 'win32' else "*.so"
+    bin_files = glob.glob(os.path.join(velox_core_path, pattern))
+    for f in bin_files:
         binaries.append((f, 'velox_core'))
     print(f"DONE: Found velox_core binaries: {binaries}")
 except ImportError:
@@ -47,36 +48,57 @@ a = Analysis(
 )
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    [],
-    name='VeloxAir_Server',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=True,
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-    icon='air_icon.ico'
-)
-
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    name='VeloxAir_Server',
-)
+if sys.platform == 'win32':
+    # Windows: One-File Build
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        [],
+        name='VeloxAir_Server',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        runtime_tmpdir=None,
+        console=True,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+        icon='air_icon.ico'
+    )
+else:
+    # Linux/macOS: One-Dir Build (More stable on these platforms for CI)
+    exe = EXE(
+        pyz,
+        a.scripts,
+        [],
+        exclude_binaries=True,
+        name='VeloxAir_Server',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        console=True,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+        icon='air_icon.ico'
+    )
+    coll = COLLECT(
+        exe,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        name='VeloxAir_Server',
+    )

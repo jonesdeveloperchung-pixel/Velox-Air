@@ -48,9 +48,8 @@ jobs:
     - name: Build with PyInstaller (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
-        # Use onedir for non-windows to avoid resource exhaustion and zip issues
-        # We override the name and console settings if necessary, but keep the spec logic
-        pyinstaller --clean --onedir velox_air.spec
+        # Packaging mode (onefile/onedir) is now handled internally by velox_air.spec
+        pyinstaller --clean velox_air.spec
 
     - name: Prepare Artifact (Windows)
       if: runner.os == 'Windows'
