@@ -26,9 +26,9 @@ try:
     pyd_files = glob.glob(os.path.join(velox_core_path, "*.pyd"))
     for f in pyd_files:
         binaries.append((f, 'velox_core'))
-    print(f"✅ Found velox_core binaries: {binaries}")
+    print(f"DONE: Found velox_core binaries: {binaries}")
 except ImportError:
-    print("⚠️  velox_core not found. Building in Pure Python mode (No Native Acceleration).")
+    print("WARN: velox_core not found. Building in Pure Python mode (No Native Acceleration).")
 
 a = Analysis(
     ['main.py'],
