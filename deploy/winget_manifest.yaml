@@ -1,0 +1,12 @@
+# WinGet Manifest for Velox Air
+PackageIdentifier: JonesChung.VeloxAir
+PackageVersion: 1.0.0
+PackageName: Velox Air
+Publisher: Jones Chung
+License: MIT
+ShortDescription: Turn legacy devices into auxiliary displays via web browser.
+Installers:
+  - Architecture: x64
+    InstallerType: portable
+    InstallerUrl: https://github.com/jonesdeveloperchung-pixel/Velox-Air/releases/download/v1.0.0/VeloxAir_Server_Windows.exe
+    InstallerSha256: REPLACE_WITH_ACTUAL_SHA256

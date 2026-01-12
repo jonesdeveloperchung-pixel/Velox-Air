@@ -1,0 +1,34 @@
+name: velox-air
+base: core22
+version: '1.0.0'
+summary: Passive web-based secondary display server.
+description: |
+  Velox Air turns old tablets and phones into auxiliary information displays 
+  without requiring any app installation.
+
+grade: stable
+confinement: strict
+
+parts:
+  velox-air:
+    plugin: python
+    source: .
+    python-packages:
+      - pip
+      - setuptools
+      - wheel
+    stage-packages:
+      - libx11-6
+      - libxtst6
+      - libxinerama1
+      - libxrandr2
+      - libxcursor1
+
+apps:
+  velox-air:
+    command: bin/python3 main.py
+    plugs:
+      - network
+      - network-bind
+      - x11
+      - desktop
