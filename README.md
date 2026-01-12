@@ -14,6 +14,11 @@ Velox Air is the passive, web-based tier of the Velox Studio portfolio. It turns
     *   Automatic Port Seeker (8765 -> 8766 -> 8767) if the default port is busy.
 *   **Cross-Platform**: Runs on Windows, Linux, and macOS.
 
+## 📸 Preview
+| Server Dashboard | Client Main Page | Fullscreen Mode |
+| :---: | :---: | :---: |
+| ![Dashboard](screenshots/Dashboard.png) | ![Mainpage](screenshots/Mainpage.png) | ![Fullsreen](screenshots/Main-fullscreen.png) |
+
 ## 🚀 Quick Start (Binaries)
 1.  Download the latest release for your OS from the [Releases Page](../../releases).
 2.  Run the executable:
