@@ -12,13 +12,60 @@ Velox Air is the passive, web-based tier of the Velox Studio portfolio. It turns
     *   Auto-reconnects on Wi-Fi drops.
     *   Works even with "Strict" Browser Privacy/Tracking Prevention enabled.
     *   Automatic Port Seeker (8765 -> 8766 -> 8767) if the default port is busy.
+*   **Cross-Platform**: Runs on Windows, Linux, and macOS.
 
-## 🚀 Quick Start (Standalone)
-1.  Run **`VeloxAir_Server.exe`** on your Windows PC.
-2.  Ensure your PC and Tablet are on the **same Wi-Fi network**.
-3.  On your Tablet:
+## 🚀 Quick Start (Binaries)
+1.  Download the latest release for your OS from the [Releases Page](../../releases).
+2.  Run the executable:
+    *   **Windows**: `VeloxAir_Server_Windows.exe`
+    *   **Linux**: `./VeloxAir_Server_Linux` (Ensure you `chmod +x` it first)
+    *   **macOS**: `./VeloxAir_Server_macOS` (You may need to allow it in Security settings)
+3.  Ensure your PC and Tablet are on the **same Wi-Fi network**.
+4.  On your Tablet:
     *   Scan the **QR Code** displayed on the Server Dashboard.
-    *   Or open the URL shown in the console (e.g., `http://192.168.1.X:8080`).
+    *   Or open the URL shown in the console (e.g., `http://192.168.1.X:8765`).
+
+## 🛠️ Build from Source
+
+### Prerequisites
+*   **Python 3.11+**
+*   **Git**
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/YourUsername/Velox-Air.git
+cd Velox-Air
+```
+
+### 2. Install Dependencies
+```bash
+pip install -r requirements.txt
+pip install pyinstaller
+```
+
+### 3. Build Executable
+**Windows:**
+Run the build script:
+```cmd
+build_air.bat
+```
+*Or manually:*
+```bash
+pyinstaller --clean velox_air.spec
+```
+
+**Linux / macOS:**
+```bash
+pyinstaller --clean velox_air.spec
+```
+
+The output binary will be located in the `dist/` directory.
+
+### 4. Run from Source (Development)
+If you prefer to run the python script directly without building:
+```bash
+python main.py
+```
 
 ## 📱 Client Guide
 ### Fullscreen Mode
@@ -31,14 +78,8 @@ Velox Air is the passive, web-based tier of the Velox Studio portfolio. It turns
 *   **Scaling:** Toggle between Contain (Fit), Cover (Fill), and Stretch.
 *   **Control Toggle:** Enable/Disable touch input (Mouse simulation).
 
-## 🛠️ Advanced Maintenance
-### Troubleshooting
-*   **"Waiting for Signal...":** The server is running but hasn't captured a frame yet. This usually resolves in <1 second. If stuck, refresh the page.
-*   **Black Screen:** If using an ultra-old device, ensure it supports WebP images.
-*   **Port Error:** The server will automatically try the next available port if 8765 is taken. Check the console window for the active address.
-
-### Architecture
-*   **Backend:** Pure Python (MSS Fallback) or Native Rust (Velox Core) if available.
+## 🔧 Architecture
+*   **Backend:** Pure Python (AsyncIO + Aiohttp) with MSS/DXCAM (Windows) capture.
 *   **Frontend:** Vanilla JS + Canvas 2D (No heavy frameworks).
 *   **Protocol:** WebSocket (Binary Protocol v1.0).
 
