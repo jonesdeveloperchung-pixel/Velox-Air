@@ -1,0 +1,17 @@
+# Velox Air - Eco Settings
+server:
+  tier: "AIR"
+  mode: "STUDIO" # Studio mode has the best text clarity for documentation
+  language: "auto" # 'auto' for browser detection, or 'zh_TW', 'en'
+  frame_rate: 20  # Capped for battery saving on legacy devices
+  webp_quality: 85 # High quality for text readability
+  webp_method: 0   # Fastest compression to save Host CPU
+  optimize_capture_pipeline: true
+  web_port: 8080
+  port: 8765
+
+adaptive_governor:
+  max_fps: 20
+  min_quality: 60
+  target_quality: 85
+  thermal_protection: true # Enable aggressive throttling if device gets hot

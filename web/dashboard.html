@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>Velox Air - Server Dashboard</title>
+    <!-- Hardcoded fallback styles to bypass Tracking Prevention blocking external CSS -->
+    <style id="tailwind-fallback">
+        .flex { display: flex; }
+        .justify-between { justify-content: space-between; }
+        .items-center { align-items: center; }
+        .grid { display: grid; }
+        .gap-6 { gap: 1.5rem; }
+        .bg-white { background-color: white; }
+        .rounded-3xl { border-radius: 1.5rem; }
+        .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+        .p-6 { padding: 1.5rem; }
+        .text-cyan-500 { color: #06b6d4; }
+        .font-bold { font-weight: 700; }
+    </style>
+    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet" onerror="this.onerror=null; console.warn('Tailwind CDN failed, using basic fallback');">
+    <style>
+        :root { --primary: #06b6d4; --bg: #f0fdfa; --card: #ffffff; }
+        body { background-color: var(--bg); font-family: 'Inter', system-ui, sans-serif; padding: 2rem; color: #1e293b; }
+        .stat-card { background: var(--card); border: 1px solid #ccfbf1; border-radius: 1.5rem; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .btn-primary { background: var(--primary); color: white; border-radius: 1rem; padding: 0.5rem 1rem; font-weight: bold; cursor: pointer; border: none; transition: background 0.2s; }
+        .btn-primary:hover { background: #0891b2; }
+        .log-box { background: #0f172a; color: #94a3b8; border-radius: 1rem; padding: 1rem; font-family: monospace; font-size: 0.75rem; height: 8rem; overflow-y: auto; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+    </style>
+    <script src="https://unpkg.com/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <div style="max-width: 64rem; margin: 0 auto;">
+        <header class="flex justify-between items-center mb-8">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-cyan-500 rounded-xl flex items-center justify-center color-white font-bold">💠</div>
+                <div>
+                    <h1 class="text-2xl font-extrabold tracking-tight m-0">Velox <span class="text-cyan-500">Air</span></h1>
+                    <p id="dashSubTitle" class="text-[0.6rem] text-cyan-600 font-bold uppercase tracking-widest m-0"></p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="resetBtn" onclick="if(confirm(t('confirm_reset'))) sendCommand('SOFTWARE_RESET')" 
+                        class="btn-primary" 
+                        style="background: #ef4444; font-size: 0.6rem; border-radius: 0.5rem;">
+                </button>
+                <a id="qrcodeLink" href="#" target="_blank" title="">
+                    <div id="qrcode" class="p-1 bg-white border border-cyan-100 rounded-lg"></div>
+                </a>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-3 gap-6 mb-8">
+            <div class="stat-card">
+                <p id="labelActiveUsers" class="text-xs text-slate-500 font-bold uppercase mb-2"></p>
+                <p class="text-3xl font-extrabold m-0"><span id="connectedCount">0</span> <span class="text-sm text-slate-400 font-normal">/ 3</span></p>
+                <p id="clientName" class="text-[0.6rem] text-cyan-500 font-bold mt-2 uppercase"></p>
+            </div>
+            <div class="stat-card bg-cyan-50 border-cyan-100">
+                <p id="labelDeviceHealth" class="text-xs text-cyan-600 font-bold uppercase mb-2"></p>
+                <p class="text-3xl font-extrabold text-cyan-700 m-0"><span id="batteryIcon">🔋</span> <span id="batteryVal">--%</span></p>
+                <p id="modeVal" class="text-[0.6rem] text-cyan-500 font-bold mt-2 uppercase"></p>
+            </div>
+            <div class="stat-card">
+                <p id="labelStreamingFps" class="text-xs text-slate-500 font-bold uppercase mb-2"></p>
+                <p class="text-3xl font-extrabold m-0"><span id="fpsVal">0</span> <span class="text-sm text-slate-400 font-normal">FPS</span></p>
+                <p id="labelFpsCap" class="text-[0.6rem] text-slate-400 font-bold mt-2 uppercase"></p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8" style="grid-template-columns: 2fr 1fr;">
+            <div class="stat-card">
+                <div class="flex justify-between mb-4">
+                    <h3 id="labelLivePreview" class="text-sm font-bold uppercase tracking-wider"></h3>
+                    <button id="refreshBtn" onclick="sendCommand('FORCE_REFRESH')" class="btn-primary" style="font-size: 0.6rem;"></button>
+                </div>
+                <div class="bg-black rounded-2xl aspect-video relative overflow-hidden flex items-center justify-center">
+                    <img id="screenSnapshot" src="" class="max-w-full max-h-full hidden">
+                    <div id="snapshotPlaceholder" class="text-slate-600 text-[0.6rem] font-bold uppercase"></div>
+                </div>
+                <div class="flex justify-between text-[0.6rem] text-slate-400 font-bold mt-4">
+                    <span><span id="labelTarget"></span> <span id="currentClient" class="text-cyan-500">--</span></span>
+                    <span><span id="labelLatency"></span> <span id="detailLat" class="text-cyan-500">-- ms</span></span>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-6">
+                <div class="stat-card">
+                    <h3 id="labelHostPerf" class="text-sm font-bold uppercase mb-4"></h3>
+                    <div class="mb-4">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>CPU</span> <span id="hostCpu">--%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                            <div id="cpuBar" class="bg-cyan-500 h-full w-0 transition-all duration-1000"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>RAM</span> <span id="hostRam">--%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                            <div id="ramBar" class="bg-blue-400 h-full w-0 transition-all duration-1000"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <h3 id="labelAssignMon" class="text-sm font-bold uppercase mb-3"></h3>
+                    <select id="monitorSelect" onchange="switchMonitor(this.value)" class="w-full p-2 rounded-lg border border-slate-200 font-bold cursor-pointer">
+                        <option value="" id="optScanning"></option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card bg-[#0f172a] border-none p-6">
+            <div class="flex justify-between items-center mb-3">
+                <h3 id="labelEventLog" class="text-[0.6rem] font-bold text-slate-500 uppercase tracking-[0.2em]"></h3>
+                <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+            </div>
+            <div id="logViewer" class="log-box custom-scrollbar">
+                <div id="initialLog" class="text-slate-600"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recovery Overlay -->
+    <div id="recoveryOverlay" class="hidden flex" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; flex-direction: column; color: white;">
+        <div style="font-size: 3rem; margin-bottom: 1rem; animation: pulse 2s infinite;">💠</div>
+        <div style="font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;">系統正在自動修復中...</div>
+        <div style="font-size: 0.6rem; color: #94a3b8; margin-top: 0.5rem;">正在清理快取緩衝並重設驅動程序鎖定</div>
+        <button onclick="document.getElementById('recoveryOverlay').style.display='none'; document.getElementById('recoveryOverlay').classList.add('hidden')" style="margin-top: 2rem; font-size: 0.5rem; color: #475569; text-decoration: underline; background: none; border: none; cursor: pointer;">
+            手動解除遮罩
+        </button>
+    </div>
+
+    <style>
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } }
+    </style>
+
+    <script>
+        // Multi-language Dictionary (Shared with Client)
+        const i18n = {
+            zh_TW: {
+                dash_title: "節能顯示監控中心",
+                software_reset: "⚠️ 軟體重置系統",
+                qr_tip: "點擊直接開啟客戶端",
+                active_users: "連線中的裝置",
+                awaiting_conn: "等待裝置連線...",
+                device_health: "裝置狀態",
+                eco_standby: "節能待命",
+                streaming_fps: "串流影格率",
+                fps_cap: "已進行動態限幀",
+                live_preview: "即時預覽",
+                hd_refresh: "✨ 畫質手動增強",
+                initial_capture: "正在進行初始化擷取...",
+                target: "目前裝置：",
+                latency: "傳輸延遲：",
+                host_perf: "主機效能",
+                assign_mon: "選擇監視器",
+                opt_scanning: "正在掃描系統螢幕...",
+                event_log: "系統事件日誌",
+                initial_log: "[系統] 控制中心已啟動。",
+                confirm_reset: "是否要重設所有串流引擎並清除驅動程序鎖定？",
+                reset_initiated: "系統正在自動修復中...",
+                reset_recovering: "正在清理快取緩衝並重設驅動程序鎖定",
+                reset_manual: "手動解除遮罩",
+                mon_label: "螢幕",
+                log_link: "控制連線已建立",
+                log_hd: "高清畫質已手動增強",
+                log_reset: "系統重置指令已執行",
+                log_recovered: "系統已成功恢復運行"
+            },
+            en: {
+                dash_title: "Eco-Monitor Control Center",
+                software_reset: "⚠️ SOFTWARE RESET",
+                qr_tip: "Click to open client link",
+                active_users: "Active Devices",
+                awaiting_conn: "Awaiting Connection...",
+                device_health: "Device Health",
+                eco_standby: "Eco Standby",
+                streaming_fps: "Streaming FPS",
+                fps_cap: "Optimized Frame Cap",
+                live_preview: "Live Preview",
+                hd_refresh: "✨ HD REFRESH",
+                initial_capture: "Initial Capture...",
+                target: "Target:",
+                latency: "Latency:",
+                host_perf: "Host Performance",
+                assign_mon: "Assign Monitor",
+                opt_scanning: "Scanning System Screens...",
+                event_log: "System Event Log",
+                initial_log: "[SYSTEM] Controller initialized.",
+                confirm_reset: "Reset all engine states and clear driver locks?",
+                reset_initiated: "System Recovering...",
+                reset_recovering: "Purging buffers and clearing driver locks",
+                reset_manual: "Dismiss Manually",
+                mon_label: "Monitor",
+                log_link: "Control link established",
+                log_hd: "HD enhancement triggered",
+                log_reset: "Software reset initiated",
+                log_recovered: "System recovered successfully"
+            }
+        };
+
+        let currentLang = 'en';
+
+        function detectLanguage() {
+            const browserLang = navigator.language || navigator.userLanguage || 'en';
+            if (browserLang.toLowerCase().includes('zh')) return 'zh_TW';
+            return 'en';
+        }
+
+        function t(key) { return i18n[currentLang][key] || key; }
+
+        function translateLog(msg) {
+            if (msg.includes("Control Link")) return t('log_link');
+            if (msg.includes("HD Refresh")) return t('log_hd');
+            if (msg.includes("RESET INITIATED")) return t('log_reset');
+            if (msg.includes("RECOVERED")) return t('log_recovered');
+            return msg;
+        }
+
+        function updateUILanguage() {
+            const setTxt = (id, key) => { const el = document.getElementById(id); if(el) el.textContent = t(key); };
+            
+            setTxt('dashSubTitle', 'dash_title');
+            setTxt('resetBtn', 'software_reset');
+            setTxt('labelActiveUsers', 'active_users');
+            setTxt('clientName', 'awaiting_conn');
+            setTxt('labelDeviceHealth', 'device_health');
+            setTxt('modeVal', 'eco_standby');
+            setTxt('labelStreamingFps', 'streaming_fps');
+            setTxt('labelFpsCap', 'fps_cap');
+            setTxt('labelLivePreview', 'live_preview');
+            setTxt('refreshBtn', 'hd_refresh');
+            setTxt('snapshotPlaceholder', 'initial_capture');
+            setTxt('labelTarget', 'target');
+            setTxt('labelLatency', 'latency');
+            setTxt('labelHostPerf', 'host_perf');
+            setTxt('labelAssignMon', 'assign_mon');
+            setTxt('optScanning', 'opt_scanning');
+            setTxt('labelEventLog', 'event_log');
+            setTxt('initialLog', 'initial_log');
+            
+            document.getElementById('qrcodeLink').title = t('qr_tip');
+
+            const overlay = document.getElementById('recoveryOverlay');
+            if (overlay) {
+                overlay.querySelector('div:nth-of-type(2)').textContent = t('reset_initiated');
+                overlay.querySelector('div:nth-of-type(3)').textContent = t('reset_recovering');
+                overlay.querySelector('button').textContent = t('reset_manual');
+            }
+        }
+
+        // Initialize
+        currentLang = detectLanguage();
+
+        let ws = null;
+        let recoveryTimer = null;
+        const IS_HTTPS = window.location.protocol === 'https:';
+        const WS_PORT = IS_HTTPS ? 8765 : (window.location.port == '8081' ? 8766 : 8765);
+        const WS_URL = `${IS_HTTPS ? 'wss:' : 'ws:'}//${window.location.hostname}:${WS_PORT}`;
+        const CLIENT_URL = `${window.location.protocol}//${window.location.hostname}:${window.location.port}`;
+
+        function generateQRCode() {
+            const qrContainer = document.getElementById("qrcode");
+            if (!qrContainer || qrContainer.querySelector('img')) return; // Already generated
+            
+            try {
+                if (typeof QRCode !== 'undefined') {
+                    qrContainer.innerHTML = ""; // Clear placeholder
+                    new QRCode(qrContainer, { text: CLIENT_URL, width: 48, height: 48 });
+                    document.getElementById("qrcodeLink").href = CLIENT_URL;
+                } else {
+                    qrContainer.innerHTML = "<div class='text-[8px] font-bold text-cyan-600'>SCAN<br>IP</div>";
+                    // Retry in 1 second if lib not found
+                    setTimeout(generateQRCode, 1000);
+                }
+            } catch (e) { console.error("QRCode Error", e); }
+        }
+
+        function addLog(msg, type = 'info') {
+            const lv = document.getElementById('logViewer');
+            if(!lv) return;
+            const div = document.createElement('div');
+            div.style.color = type === 'warning' ? '#f59e0b' : (type === 'error' ? '#ef4444' : '#94a3b8');
+            const translatedMsg = translateLog(msg);
+            div.innerHTML = `<span style="color: #475569;">[${new Date().toLocaleTimeString()}]</span> ${translatedMsg}`;
+            lv.appendChild(div);
+            lv.scrollTop = lv.scrollHeight;
+        }
+
+        function connectWS() {
+            try {
+                ws = new WebSocket(WS_URL);
+                ws.binaryType = 'arraybuffer'; // Crucial: Dashboard receives binary frames too
+                ws.onopen = () => { addLog("Control Link Established"); ws.send(JSON.stringify({ type: 'DASHBOARD_IDENT' })); };
+                ws.onmessage = (e) => {
+                    if (e.data instanceof ArrayBuffer) return;
+                    let rawData = e.data;
+                    if (typeof rawData !== 'string') return;
+                    if (rawData === "[object Blob]" || rawData === "[object ArrayBuffer]") return;
+                    if (!rawData.trim().startsWith('{')) return;
+
+                    try {
+                        const msg = JSON.parse(rawData);
+                        if (msg.type === 'VERSION') {
+                            if (msg.language && msg.language !== 'auto') {
+                                currentLang = msg.language;
+                            } else {
+                                currentLang = detectLanguage();
+                            }
+                            updateUILanguage();
+                        }
+                        if (msg.type === 'SYS_EVENT') {
+                            addLog(msg.message, msg.level);
+                            const overlay = document.getElementById('recoveryOverlay');
+                            if (msg.message.includes("INITIATED")) {
+                                overlay.style.display = 'flex';
+                                overlay.classList.remove('hidden');
+                                if(recoveryTimer) clearTimeout(recoveryTimer);
+                                recoveryTimer = setTimeout(() => {
+                                    overlay.style.display = 'none';
+                                    overlay.classList.add('hidden');
+                                }, 10000);
+                            } else if (msg.message.includes("RECOVERED")) {
+                                overlay.style.display = 'none';
+                                overlay.classList.add('hidden');
+                                if(recoveryTimer) clearTimeout(recoveryTimer);
+                            }
+                        }
+                    } catch(err) { }
+                };
+                ws.onclose = () => setTimeout(connectWS, 2000);
+            } catch(e) { console.error(e); }
+        }
+
+        const sendCommand = (cmd) => ws && ws.readyState === 1 && ws.send(JSON.stringify({ type: 'DASHBOARD_CMD', command: cmd }));
+        const switchMonitor = (id) => ws && ws.readyState === 1 && ws.send(JSON.stringify({ type: 'DASHBOARD_CMD', command: 'SWITCH_MONITOR', monitor_id: id }));
+
+        async function updateStats() {
+            try {
+                // Use explicit origin to prevent issues with port transitions
+                const response = await fetch(`${window.location.origin}/api/stats`);
+                if (!response.ok) return;
+                const data = await response.json();
+                
+                const setEl = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+                
+                if (data.host) {
+                    setEl('hostCpu', Math.round(data.host.cpu) + "%");
+                    document.getElementById('cpuBar').style.width = data.host.cpu + "%";
+                    setEl('hostRam', Math.round(data.host.ram) + "%");
+                    document.getElementById('ramBar').style.width = data.host.ram + "%";
+                }
+
+                const sel = document.getElementById('monitorSelect');
+                if (sel && data.monitors && (sel.options.length !== data.monitors.length || sel.options[0].value === "")) {
+                    const val = sel.value; sel.innerHTML = '';
+                    data.monitors.forEach(m => {
+                        const opt = new Option(`${t('mon_label')} ${m.id + 1} (${m.width}x${m.height})`, m.id);
+                        sel.add(opt);
+                    });
+                    if (val !== "") sel.value = val;
+                }
+
+                setEl('connectedCount', data.clients || 0);
+                if (data.client_details && data.client_details.length > 0) {
+                    const c = data.client_details[0];
+                    const displayName = c.name || c.id;
+                    setEl('currentClient', displayName); setEl('clientName', displayName);
+                    setEl('batteryVal', (c.battery || 0) + "%");
+                    setEl('fpsVal', Math.round(c.fps || 0));
+                    setEl('modeVal', c.mode);
+                    setEl('detailLat', (c.latency || 24) + " ms");
+                    document.getElementById('batteryIcon').textContent = c.is_charging ? "⚡" : "🔋";
+                } else {
+                    setEl('currentClient', "--");
+                    setEl('clientName', t('awaiting_conn'));
+                    setEl('modeVal', t('eco_standby'));
+                }
+            } catch (e) { console.error("Stats Error", e); }
+        }
+
+        async function updateSnapshot() {
+            const img = document.getElementById('screenSnapshot');
+            const ph = document.getElementById('snapshotPlaceholder');
+            const sel = document.getElementById('monitorSelect');
+            if (!img) return;
+            
+            const monId = sel.value || 0;
+            const newSrc = `${window.location.origin}/api/snapshot?monitor_id=${monId}&t=${Date.now()}`;
+            
+            // Avoid reloading same image if monitor is empty/none
+            img.onerror = () => {
+                img.style.display = 'none';
+                if(ph) { ph.style.display = 'flex'; ph.textContent = "Waiting for Engine..."; }
+            };
+            img.onload = () => {
+                img.style.display = 'block';
+                if(ph) ph.style.display = 'none';
+            };
+            img.src = newSrc;
+        }
+
+        connectWS();
+        updateUILanguage();
+        generateQRCode();
+        setInterval(updateStats, 2000);
+        setInterval(updateSnapshot, 3000);
+        updateStats();
+        updateSnapshot();
+    </script>
+</body>
+</html>

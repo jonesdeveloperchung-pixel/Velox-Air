@@ -1,0 +1,16 @@
+{
+    "name": "Velox Air",
+    "short_name": "Velox Air",
+    "start_url": "index.html",
+    "display": "standalone",
+    "background_color": "#f8fafc",
+    "theme_color": "#06b6d4",
+    "orientation": "landscape",
+    "icons": [
+        {
+            "src": "../air_icon.ico",
+            "sizes": "64x64 32x32 24x24 16x16",
+            "type": "image/x-icon"
+        }
+    ]
+}

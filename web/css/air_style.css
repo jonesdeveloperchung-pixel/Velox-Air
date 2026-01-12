@@ -1,0 +1,36 @@
+/* air_style.css */
+body {
+    background-color: #f8fafc;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+#videoCanvas {
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    background-color: #000;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.mirror-surface {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+}
+
+@keyframes pulse-cyan {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.eco-pulse {
+    animation: pulse-cyan 3s infinite;
+}
+
+/* Scrollbar styling for older browsers if they show up */
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+::-webkit-scrollbar-thumb {
+    background: #00bcd4;
+    border-radius: 10px;
+}
